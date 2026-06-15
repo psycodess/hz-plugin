@@ -1,0 +1,111 @@
+# Flow Launcher Plugin Plan: Refresh Rate Changer (hz plugin)
+
+Based on the official Flow Launcher documentation, here is a complete plan to build a plugin that allows you to change your Windows screen refresh rate directly from Flow Launcher.
+
+## 1. Tech Stack & Architecture
+
+- **Language:** Python
+- **Flow Launcher Integration:** JSON-RPC (Standard for Python plugins)
+- **Windows API:** `pywin32` (to query and set the display refresh rate)
+- **Dependencies:** `flowlauncher` (official Python wrapper), `pywin32`
+
+## 2. Directory Structure
+
+Your plugin repository (`hz pluging`) should have the following structure:
+
+```text
+hz-plugin/
+├── plugin.json       # Plugin manifest
+├── main.py           # The main Python script handling queries and actions
+├── requirements.txt  # Python dependencies (flowlauncher, pywin32)
+├── Images/
+│   └── app.png       # The icon for your plugin
+└── .github/
+    └── workflows/
+        └── Publish Release.yml  # CI/CD to package the plugin
+```
+
+## 3. Implementation Steps
+
+### Step 1: Create `plugin.json`
+This file tells Flow Launcher how to load your plugin.
+- Set `Language` to `python`
+- Set `ExecuteFileName` to `main.py`
+- Set a default `ActionKeyword` (e.g., `hz`)
+
+### Step 2: Install Local Dependencies
+Create a `requirements.txt` file:
+```txt
+flowlauncher
+pywin32
+```
+To develop locally, you install these into a local `./lib` folder so Flow Launcher can find them without requiring the end-user to globally install them.
+
+### Step 3: Write `main.py`
+The code will inherit from `FlowLauncher`. 
+
+**The `query(self, query)` method:**
+1. Use `win32api.EnumDisplaySettings` from `pywin32` to get the current display settings and all supported refresh rates for the primary monitor.
+2. Filter the supported refresh rates to unique values (e.g., 60, 120, 144, 240).
+3. If the user types a specific number (like `hz 144`), filter the list to show that option.
+4. Return a list of JSON-RPC results. Each result will have a `jsonRPCAction` that points to a `set_refresh_rate` method.
+
+**The `set_refresh_rate(self, rate)` method:**
+1. Fetch the current display settings using `win32api.EnumDisplaySettings`.
+2. Update the `DisplayFrequency` property of the `PyDEVMODE` object to the new rate.
+3. Call `win32api.ChangeDisplaySettings` to apply the change to the Windows system.
+
+### Step 4: Add Context Menu (Optional)
+You can implement `context_menu(self, data)` to provide additional options, such as opening the Windows Display Settings panel.
+
+### Step 5: Packaging and CI/CD
+Following the Flow Launcher documentation, you will use GitHub Actions (`Publish Release.yml`).
+The action will:
+1. Read the version from `plugin.json`.
+2. Run `pip install -r requirements.txt -t ./lib` to download `pywin32` and `flowlauncher` into the `lib/` directory.
+3. Zip the entire folder.
+4. Create a new GitHub Release with the zip file attached. 
+When a user installs your plugin via Flow Launcher (or manually), the `lib/` folder will be included, and the Python environment will use it automatically.
+
+## 4. Code Snippet Preview (Conceptual)
+
+```python
+import sys, os
+from pathlib import Path
+
+# Add local lib to path for dependencies
+plugindir = Path.absolute(Path(__file__).parent)
+paths = (".", "lib", "plugin")
+sys.path = [str(plugindir / p) for p in paths] + sys.path
+
+from flowlauncher import FlowLauncher
+import win32api
+import win32con
+
+class RefreshRatePlugin(FlowLauncher):
+    def query(self, query):
+        results = []
+        # Query Windows for available refresh rates...
+        # ...
+        # Append to results
+        results.append({
+            "title": "Set refresh rate to 144Hz",
+            "subTitle": "Current rate is 60Hz",
+            "icoPath": "Images/app.png",
+            "jsonRPCAction": {
+                "method": "set_refresh_rate",
+                "parameters": [144]
+            }
+        })
+        return results
+
+    def set_refresh_rate(self, rate):
+        devmode = win32api.EnumDisplaySettings(None, win32con.ENUM_CURRENT_SETTINGS)
+        devmode.DisplayFrequency = rate
+        win32api.ChangeDisplaySettings(devmode, 0)
+
+if __name__ == "__main__":
+    RefreshRatePlugin()
+```
+
+Would you like me to start creating the boilerplate files (`plugin.json`, `main.py`, `requirements.txt`) in your `hz pluging` directory?
