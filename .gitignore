@@ -2,4 +2,5 @@ lib/
 __pycache__/
 *.pyc
 *.zip
+!hz-plugin.zip
 *.resolved

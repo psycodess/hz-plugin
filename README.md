@@ -10,19 +10,31 @@ An easy-to-use Flow Launcher plugin to check and change your display monitor's r
 - **List Available Rates:** Automatically queries Windows to discover all supported refresh rates for your primary display.
 - **One-click Change:** Instantly switches the refresh rate when you select one from the list.
 - **Display Settings Shortcut:** Includes a context menu shortcut (`Shift + Enter`) to quickly open the native Windows Display Settings panel.
-- **Zero Configuration:** Automatically installs and references dependencies (`pywin32`) in a self-contained local folder.
+- **Self-contained:** Pre-packaged with all required libraries (`pywin32` and `flowlauncher`), so no setup or pip installs are needed.
 
 ---
 
-## 🚀 Easy Installation (One-liner PowerShell)
+## 🚀 Installation Options
 
-To install or update the plugin on any PC, open **PowerShell** (as Administrator if required by your execution policies) and run this one-liner command:
+### Option 1: PowerShell Method (Recommended)
+
+1. Open **PowerShell Administrator** (Right-click PowerShell and select "Run as administrator").
+2. Paste and run the following command to download and install the plugin automatically:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -Command "iex (iwr -UseBasicParsing 'https://raw.githubusercontent.com/psycodess/hz-plugin/main/install.ps1')"
+iex (iwr -UseBasicParsing 'https://raw.githubusercontent.com/psycodess/hz-plugin/main/install.ps1')
 ```
 
-*This command automatically downloads the plugin, extracts it to the Flow Launcher plugins directory, and configures the required Python dependencies.*
+---
+
+### Option 2: Manual Method
+
+1. Download the pre-packaged [**`hz-plugin.zip`**](https://github.com/psycodess/hz-plugin/raw/main/hz-plugin.zip) from this repository.
+2. Extract the contents of the ZIP file.
+3. Paste the extracted folder into the Flow Launcher plugins directory:
+   * Press `Win + R`, type `%APPDATA%\FlowLauncher\Plugins` (or `%LOCALAPPDATA%\FlowLauncher\Plugins`), and press Enter.
+   * Create a folder named `hz-plugin` and paste all extracted files inside.
+4. Restart Flow Launcher.
 
 ---
 
@@ -40,4 +52,3 @@ powershell -ExecutionPolicy Bypass -Command "iex (iwr -UseBasicParsing 'https://
 - **Language:** Python
 - **Interface:** JSON-RPC (via Flow Launcher's Python helper)
 - **Windows APIs:** Leverages Python's `pywin32` library to communicate with the OS using `win32api.EnumDisplaySettings` and `win32api.ChangeDisplaySettings`.
-- **Self-contained:** Dependencies are installed into a local `./lib` directory to keep your global Python environment clean.

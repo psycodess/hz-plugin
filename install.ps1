@@ -1,7 +1,6 @@
 $ErrorActionPreference = "Stop"
-$RepoUrl = "https://github.com/psycodess/hz-plugin/archive/refs/heads/main.zip"
+$RepoUrl = "https://github.com/psycodess/hz-plugin/raw/main/hz-plugin.zip"
 $TempZip = "$env:TEMP\hz-plugin.zip"
-$ExtractPath = "$env:TEMP\hz-plugin-extract"
 
 # 1. Determine Flow Launcher plugins folder
 $flUserPath = "$env:APPDATA\FlowLauncher\Plugins"
@@ -18,38 +17,25 @@ if (-not $TargetDir) {
 $DestDir = "$TargetDir\hz-plugin"
 
 # 2. Download ZIP
-Write-Host "Downloading plugin from GitHub..." -ForegroundColor Cyan
+Write-Host "Downloading pre-packaged plugin from GitHub..." -ForegroundColor Cyan
 Invoke-WebRequest -Uri $RepoUrl -OutFile $TempZip -UseBasicParsing
 
-# 3. Extract ZIP
-Write-Host "Extracting files..." -ForegroundColor Cyan
-if (Test-Path $ExtractPath) { Remove-Item -Recurse -Force $ExtractPath }
-Expand-Archive -Path $TempZip -DestinationPath $ExtractPath -Force
-
-# 4. Move to Flow Launcher plugins folder
+# 3. Extract ZIP directly to the destination directory
 Write-Host "Installing to Flow Launcher..." -ForegroundColor Cyan
 if (Test-Path $DestDir) { Remove-Item -Recurse -Force $DestDir }
-Move-Item -Path "$ExtractPath\hz-plugin-main" -Destination $DestDir -Force
+New-Item -ItemType Directory -Path $DestDir -Force | Out-Null
+Expand-Archive -Path $TempZip -DestinationPath $DestDir -Force
 
-# 5. Clean up temp files
+# 4. Clean up temp files
 Remove-Item -Path $TempZip -Force
-Remove-Item -Recurse -Force $ExtractPath
 
-# 6. Install dependencies
-Write-Host "Installing dependencies..." -ForegroundColor Cyan
+# 5. Check Python
 try {
     $pyVersion = python --version 2>&1
     Write-Host "Python detected: $pyVersion" -ForegroundColor Green
 } catch {
     Write-Warning "Python is not installed or not in PATH! Please install Python from https://python.org to run this plugin."
-    exit 0
 }
 
-# Run pip to install dependencies to lib folder
-& pip install -r "$DestDir\requirements.txt" -t "$DestDir\lib" --quiet
-if ($LASTEXITCODE -eq 0) {
-    Write-Host "=== Installation Successful! ===" -ForegroundColor Green
-    Write-Host "Please restart Flow Launcher and trigger with 'hz'." -ForegroundColor Yellow
-} else {
-    Write-Warning "Failed to install Python dependencies automatically. You may need to run: pip install -r '$DestDir\requirements.txt' -t '$DestDir\lib'"
-}
+Write-Host "=== Installation Successful! ===" -ForegroundColor Green
+Write-Host "Please restart Flow Launcher and trigger with 'hz'." -ForegroundColor Yellow
