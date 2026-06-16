@@ -27,10 +27,10 @@ jobs:
 
       - name: Package plugin
         run: |
-          zip -r "hz-plugin-${{ steps.version.outputs.version }}.zip" . -x "*.git*" ".github/*"
+          zip -r "hz-plugin.zip" . -x "*.git*" ".github/*"
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          files: "hz-plugin-${{ steps.version.outputs.version }}.zip"
+          files: "hz-plugin.zip"
           generate_release_notes: true
