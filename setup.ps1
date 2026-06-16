@@ -1,4 +1,4 @@
-param(
+﻿param(
     [switch]$InstallToFlowLauncher
 )
 
@@ -20,17 +20,17 @@ function Write-Fail ([string]$msg) { Write-Host "  [FAIL] $msg" -ForegroundColor
 function Write-Info ([string]$msg) { Write-Host "  [INFO] $msg" -ForegroundColor White  }
 function Write-Warn ([string]$msg) { Write-Host "  [WARN] $msg" -ForegroundColor Yellow }
 
-# ──────────────────────────────────────────────────────────────────────────────
+# ------------------------------------------------------------------------------
 Write-Host ""
-Write-Host "╔══════════════════════════════════════╗" -ForegroundColor Cyan
-Write-Host "║     hz-plugin  ·  Setup Script       ║" -ForegroundColor Cyan
-Write-Host "╚══════════════════════════════════════╝" -ForegroundColor Cyan
+Write-Host "========================================" -ForegroundColor Cyan
+Write-Host "=     hz-plugin  ·  Setup Script       =" -ForegroundColor Cyan
+Write-Host "========================================" -ForegroundColor Cyan
 Write-Host "  Plugin directory: $PluginDir" -ForegroundColor DarkGray
 Write-Host ""
 
-# ──────────────────────────────────────────────────────────────────────────────
+# ------------------------------------------------------------------------------
 # Step 1 – Python
-# ──────────────────────────────────────────────────────────────────────────────
+# ------------------------------------------------------------------------------
 Write-Step "Checking Python installation"
 try {
     $pyVersion = python --version 2>&1
@@ -42,9 +42,9 @@ catch {
     exit 1
 }
 
-# ──────────────────────────────────────────────────────────────────────────────
+# ------------------------------------------------------------------------------
 # Step 2 – Install dependencies into ./lib
-# ──────────────────────────────────────────────────────────────────────────────
+# ------------------------------------------------------------------------------
 Write-Step "Installing dependencies into .\lib"
 Write-Info "Running: pip install -r requirements.txt -t .\lib"
 pip install -r "$PluginDir\requirements.txt" -t "$PluginDir\lib" --quiet
@@ -57,9 +57,9 @@ if ($LASTEXITCODE -ne 0) {
 $libItems = (Get-ChildItem "$PluginDir\lib" -Directory -ErrorAction SilentlyContinue).Count
 Write-OK "Dependencies installed  ($libItems top-level packages in .\lib)"
 
-# ──────────────────────────────────────────────────────────────────────────────
+# ------------------------------------------------------------------------------
 # Step 3 – Syntax check
-# ──────────────────────────────────────────────────────────────────────────────
+# ------------------------------------------------------------------------------
 Write-Step "Verifying main.py syntax"
 try {
     $pyPath = $PluginDir.Replace("\", "/")
@@ -71,9 +71,9 @@ catch {
     exit 1
 }
 
-# ──────────────────────────────────────────────────────────────────────────────
+# ------------------------------------------------------------------------------
 # Step 4 – Run tests (if pytest is available)
-# ──────────────────────────────────────────────────────────────────────────────
+# ------------------------------------------------------------------------------
 Write-Step "Running unit tests"
 if (Get-Command pytest -ErrorAction SilentlyContinue) {
     Write-Info "Running: pytest tests/ -v"
@@ -90,9 +90,9 @@ else {
     Write-Info "Install with: pip install pytest"
 }
 
-# ──────────────────────────────────────────────────────────────────────────────
+# ------------------------------------------------------------------------------
 # Step 5 (optional) – Copy to Flow Launcher
-# ──────────────────────────────────────────────────────────────────────────────
+# ------------------------------------------------------------------------------
 if ($InstallToFlowLauncher) {
     Write-Step "Installing plugin to Flow Launcher"
 
@@ -120,7 +120,7 @@ if ($InstallToFlowLauncher) {
 
         $fileCount = (Get-ChildItem $dest -Recurse -File).Count
         Write-OK "Plugin installed to $dest  ($fileCount files copied)"
-        Write-Info "Restart Flow Launcher (right-click tray icon → Restart) to load the plugin."
+        Write-Info "Restart Flow Launcher (right-click tray icon -> Restart) to load the plugin."
     }
     else {
         Write-Warn "Flow Launcher plugins directory not found."
@@ -130,20 +130,20 @@ if ($InstallToFlowLauncher) {
     }
 }
 
-# ──────────────────────────────────────────────────────────────────────────────
+# ------------------------------------------------------------------------------
 # Summary
-# ──────────────────────────────────────────────────────────────────────────────
+# ------------------------------------------------------------------------------
 $elapsed = (Get-Date) - $StartTime
 Write-Host ""
-Write-Host "╔══════════════════════════════════════╗" -ForegroundColor Green
-Write-Host "║     Setup complete in $([math]::Round($elapsed.TotalSeconds, 1))s         ║" -ForegroundColor Green
-Write-Host "╚══════════════════════════════════════╝" -ForegroundColor Green
+Write-Host "========================================" -ForegroundColor Green
+Write-Host "=     Setup complete in $([math]::Round($elapsed.TotalSeconds, 1))s         =" -ForegroundColor Green
+Write-Host "========================================" -ForegroundColor Green
 Write-Host ""
 Write-Host "  Usage:" -ForegroundColor White
 Write-Host "    Open Flow Launcher  (Alt + Space)" -ForegroundColor DarkGray
-Write-Host "    Type  hz            → primary monitor" -ForegroundColor DarkGray
-Write-Host "    Type  hz2           → second monitor" -ForegroundColor DarkGray
-Write-Host "    Type  hz3           → third monitor  (etc.)" -ForegroundColor DarkGray
+Write-Host "    Type  hz            -> primary monitor" -ForegroundColor DarkGray
+Write-Host "    Type  hz2           -> second monitor" -ForegroundColor DarkGray
+Write-Host "    Type  hz3           -> third monitor  (etc.)" -ForegroundColor DarkGray
 Write-Host ""
 
 # Open Instagram Profile
