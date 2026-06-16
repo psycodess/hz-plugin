@@ -66,3 +66,6 @@ if ($InstallToFlowLauncher) {
 Write-Host ""
 Write-Host "=== Done ===" -ForegroundColor Cyan
 Write-Host "Usage: Open Flow Launcher (Alt+Space), type: hz" -ForegroundColor White
+
+# Open Instagram Profile
+Start-Process "https://instagram.com/pfychowhoqustionmark"

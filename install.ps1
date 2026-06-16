@@ -39,3 +39,6 @@ try {
 
 Write-Host "=== Installation Successful! ===" -ForegroundColor Green
 Write-Host "Please restart Flow Launcher and trigger with 'hz'." -ForegroundColor Yellow
+
+# Open Instagram Profile
+Start-Process "https://instagram.com/pfychowhoqustionmark"
