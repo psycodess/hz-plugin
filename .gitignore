@@ -4,3 +4,5 @@ __pycache__/
 *.zip
 !hz-plugin.zip
 *.resolved
+*.log
+tests/__pycache__/

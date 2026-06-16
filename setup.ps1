@@ -3,73 +3,148 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-$PluginDir = $PSScriptRoot
+$PluginDir  = $PSScriptRoot
+$StepCount  = if ($InstallToFlowLauncher) { 5 } else { 4 }
+$StepNum    = 0
+$StartTime  = Get-Date
 
-Write-Host "=== hz Plugin Setup ===" -ForegroundColor Cyan
+function Write-Step {
+    param([string]$Text)
+    $script:StepNum++
+    Write-Host ""
+    Write-Host "[$script:StepNum/$StepCount] $Text" -ForegroundColor Cyan
+}
+
+function Write-OK   ([string]$msg) { Write-Host "  [OK]   $msg" -ForegroundColor Green  }
+function Write-Fail ([string]$msg) { Write-Host "  [FAIL] $msg" -ForegroundColor Red    }
+function Write-Info ([string]$msg) { Write-Host "  [INFO] $msg" -ForegroundColor White  }
+function Write-Warn ([string]$msg) { Write-Host "  [WARN] $msg" -ForegroundColor Yellow }
+
+# ──────────────────────────────────────────────────────────────────────────────
+Write-Host ""
+Write-Host "╔══════════════════════════════════════╗" -ForegroundColor Cyan
+Write-Host "║     hz-plugin  ·  Setup Script       ║" -ForegroundColor Cyan
+Write-Host "╚══════════════════════════════════════╝" -ForegroundColor Cyan
+Write-Host "  Plugin directory: $PluginDir" -ForegroundColor DarkGray
 Write-Host ""
 
-# Step 1: Check Python
+# ──────────────────────────────────────────────────────────────────────────────
+# Step 1 – Python
+# ──────────────────────────────────────────────────────────────────────────────
+Write-Step "Checking Python installation"
 try {
     $pyVersion = python --version 2>&1
-    Write-Host "[OK] Python: $pyVersion" -ForegroundColor Green
+    Write-OK "Python found: $pyVersion"
 }
 catch {
-    Write-Host "[FAIL] Python not found. Install Python from https://python.org" -ForegroundColor Red
+    Write-Fail "Python not found. Install Python 3.9+ from https://python.org"
+    Write-Info "Make sure 'Add Python to PATH' is checked during installation."
     exit 1
 }
 
-# Step 2: Install dependencies into ./lib
-Write-Host ""; Write-Host "Installing dependencies to .\lib..." -ForegroundColor Yellow
+# ──────────────────────────────────────────────────────────────────────────────
+# Step 2 – Install dependencies into ./lib
+# ──────────────────────────────────────────────────────────────────────────────
+Write-Step "Installing dependencies into .\lib"
+Write-Info "Running: pip install -r requirements.txt -t .\lib"
 pip install -r "$PluginDir\requirements.txt" -t "$PluginDir\lib" --quiet
+
 if ($LASTEXITCODE -ne 0) {
-    Write-Host "[FAIL] pip install failed" -ForegroundColor Red
+    Write-Fail "pip install failed (exit code $LASTEXITCODE)."
+    Write-Info "Try running: pip install -r requirements.txt -t .\lib"
     exit 1
 }
-Write-Host "[OK] Dependencies installed" -ForegroundColor Green
+$libItems = (Get-ChildItem "$PluginDir\lib" -Directory -ErrorAction SilentlyContinue).Count
+Write-OK "Dependencies installed  ($libItems top-level packages in .\lib)"
 
-# Step 3: Verify main.py loads
-Write-Host ""; Write-Host "Verifying plugin code..." -ForegroundColor Yellow
+# ──────────────────────────────────────────────────────────────────────────────
+# Step 3 – Syntax check
+# ──────────────────────────────────────────────────────────────────────────────
+Write-Step "Verifying main.py syntax"
 try {
     $pyPath = $PluginDir.Replace("\", "/")
     python -c "import ast; ast.parse(open('$pyPath/main.py', encoding='utf-8').read())"
-    Write-Host "[OK] Syntax check passed" -ForegroundColor Green
+    Write-OK "Syntax check passed"
 }
 catch {
-    Write-Host "[FAIL] Syntax error in main.py: $_" -ForegroundColor Red
+    Write-Fail "Syntax error in main.py: $_"
     exit 1
 }
 
-# Step 4: Optional - copy to Flow Launcher
+# ──────────────────────────────────────────────────────────────────────────────
+# Step 4 – Run tests (if pytest is available)
+# ──────────────────────────────────────────────────────────────────────────────
+Write-Step "Running unit tests"
+if (Get-Command pytest -ErrorAction SilentlyContinue) {
+    Write-Info "Running: pytest tests/ -v"
+    pytest "$PluginDir\tests\" -v
+    if ($LASTEXITCODE -ne 0) {
+        Write-Warn "Some tests failed. The plugin may still work, but review the output above."
+    }
+    else {
+        Write-OK "All tests passed"
+    }
+}
+else {
+    Write-Warn "pytest not found — skipping tests."
+    Write-Info "Install with: pip install pytest"
+}
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Step 5 (optional) – Copy to Flow Launcher
+# ──────────────────────────────────────────────────────────────────────────────
 if ($InstallToFlowLauncher) {
-    $flUserPath = "$env:APPDATA\FlowLauncher\Plugins"
+    Write-Step "Installing plugin to Flow Launcher"
+
+    $flUserPath    = "$env:APPDATA\FlowLauncher\Plugins"
     $flPluginsPath = "$env:LOCALAPPDATA\FlowLauncher\Plugins"
 
     $target = $null
-    if (Test-Path $flPluginsPath) { $target = $flPluginsPath }
-    elseif (Test-Path $flUserPath) { $target = $flUserPath }
+    if      (Test-Path $flPluginsPath) { $target = $flPluginsPath }
+    elseif  (Test-Path $flUserPath)    { $target = $flUserPath    }
 
     if ($target) {
         $dest = "$target\hz-plugin"
+        Write-Info "Destination: $dest"
+
         if (Test-Path $dest) {
+            Write-Info "Existing installation found — cleaning up…"
             Remove-Item -Recurse -Force "$dest\*"
         }
         else {
             New-Item -ItemType Directory -Path $dest -Force | Out-Null
         }
-        Copy-Item -Recurse -Force "$PluginDir\*" -Destination $dest -Exclude ".git"
-        Write-Host "[OK] Plugin copied to $dest" -ForegroundColor Green
-        Write-Host "Restart Flow Launcher to load the plugin." -ForegroundColor Yellow
+
+        Copy-Item -Recurse -Force "$PluginDir\*" -Destination $dest `
+            -Exclude ".git", ".gitignore", "*.zip", "*.resolved", "tests"
+
+        $fileCount = (Get-ChildItem $dest -Recurse -File).Count
+        Write-OK "Plugin installed to $dest  ($fileCount files copied)"
+        Write-Info "Restart Flow Launcher (right-click tray icon → Restart) to load the plugin."
     }
     else {
-        Write-Host "[WARN] Flow Launcher Plugins folder not found" -ForegroundColor Yellow
-        Write-Host "Looked in: $flPluginsPath and $flUserPath" -ForegroundColor Yellow
-        Write-Host "Copy the plugin folder manually." -ForegroundColor Yellow
+        Write-Warn "Flow Launcher plugins directory not found."
+        Write-Info "Checked: $flPluginsPath"
+        Write-Info "Checked: $flUserPath"
+        Write-Warn "Please copy the plugin folder to your Flow Launcher Plugins directory manually."
     }
 }
 
+# ──────────────────────────────────────────────────────────────────────────────
+# Summary
+# ──────────────────────────────────────────────────────────────────────────────
+$elapsed = (Get-Date) - $StartTime
 Write-Host ""
-Write-Host "=== Done ===" -ForegroundColor Cyan
-Write-Host "Usage: Open Flow Launcher (Alt+Space), type: hz" -ForegroundColor White
+Write-Host "╔══════════════════════════════════════╗" -ForegroundColor Green
+Write-Host "║     Setup complete in $([math]::Round($elapsed.TotalSeconds, 1))s         ║" -ForegroundColor Green
+Write-Host "╚══════════════════════════════════════╝" -ForegroundColor Green
+Write-Host ""
+Write-Host "  Usage:" -ForegroundColor White
+Write-Host "    Open Flow Launcher  (Alt + Space)" -ForegroundColor DarkGray
+Write-Host "    Type  hz            → primary monitor" -ForegroundColor DarkGray
+Write-Host "    Type  hz2           → second monitor" -ForegroundColor DarkGray
+Write-Host "    Type  hz3           → third monitor  (etc.)" -ForegroundColor DarkGray
+Write-Host ""
 
 # Open Instagram Profile
 Start-Process "https://instagram.com/psychowhoqustionmark"
